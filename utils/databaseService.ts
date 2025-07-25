@@ -11,6 +11,8 @@ export class DatabaseService {
   // Authentication
   static async login(username: string, password: string): Promise<UserSession | null> {
     try {
+      console.log('Attempting login for:', username);
+      
       const { data: member, error } = await supabase
         .from('members')
         .select('*')
@@ -18,7 +20,10 @@ export class DatabaseService {
         .eq('password', password)
         .single();
 
+      console.log('Login response:', { member, error });
+
       if (error || !member) {
+        console.log('Login failed:', error);
         return null;
       }
 

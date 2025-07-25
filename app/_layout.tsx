@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { StorageManager } from '../utils/storage';
 import { router } from 'expo-router';
@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 export default function RootLayout() {
   useFrameworkReady();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -16,12 +17,16 @@ export default function RootLayout() {
 
   const checkAuthStatus = async () => {
     try {
+      console.log('Checking auth status...');
       const session = await StorageManager.getUserSession();
+      console.log('Session found:', !!session);
       if (!session) {
+        console.log('No session, redirecting to login');
         router.replace('/login');
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
+      setError('Failed to check authentication status');
     } finally {
       setIsAuthChecked(true);
     }
@@ -29,8 +34,9 @@ export default function RootLayout() {
 
   if (!isAuthChecked) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
     );
   }
@@ -46,3 +52,23 @@ export default function RootLayout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#333333',
+    marginBottom: 10,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FF0000',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+});

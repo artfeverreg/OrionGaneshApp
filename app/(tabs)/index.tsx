@@ -22,6 +22,8 @@ export default function HomeScreen() {
   const [collectedStickers, setCollectedStickers] = useState<string[]>([]);
   const [canScratchToday, setCanScratchToday] = useState(false);
   const [timeUntilNextScratch, setTimeUntilNextScratch] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [donors, setDonors] = useState<any[]>([]);
 

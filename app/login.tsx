@@ -29,6 +29,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     
     try {
+      console.log('Starting login process...');
       const userSession = await DatabaseService.login(username, password);
       
       setIsLoading(false);
@@ -38,7 +39,9 @@ export default function LoginScreen() {
         return;
       }
       
+      console.log('Login successful, saving session...');
       await StorageManager.saveUserSession(userSession);
+      console.log('Session saved, navigating to tabs...');
       router.replace('/(tabs)');
     } catch (error) {
       setIsLoading(false);
