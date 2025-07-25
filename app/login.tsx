@@ -30,12 +30,17 @@ export default function LoginScreen() {
     
     try {
       console.log('Starting login process...');
+      console.log('Environment check:', {
+        supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+        hasKey: !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      });
+      
       const userSession = await DatabaseService.login(username, password);
       
       setIsLoading(false);
       
       if (!userSession) {
-        Alert.alert('Error', 'Invalid credentials');
+        Alert.alert('Login Failed', 'Invalid username or password. Please check your credentials and try again.');
         return;
       }
       
@@ -45,8 +50,14 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Error', 'Login failed. Please try again.');
       console.error('Login error:', error);
+      Alert.alert(
+        'Connection Error', 
+        'Unable to connect to the server. Please check your internet connection and try again.',
+        [
+          { text: 'OK' }
+        ]
+      );
     }
   };
 

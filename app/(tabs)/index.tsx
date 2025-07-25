@@ -42,7 +42,8 @@ export default function HomeScreen() {
 
   // Listen for focus to refresh data when returning from scratch screen
   useEffect(() => {
-    const unsubscribe = router.addListener?.('focus', () => {
+    const unsubscribe = router.addListener('focus', () => {
+      console.log('Home screen focused, refreshing data...');
       loadUserData();
       checkScratchAvailability();
     });
@@ -51,31 +52,58 @@ export default function HomeScreen() {
   }, []);
   
   const loadUserData = async () => {
-    const session = await StorageManager.getUserSession();
-    if (session) {
+    try {
+      console.log('Loading user data...');
+      const session = await StorageManager.getUserSession();
+      
+      if (!session) {
+        console.log('No session found, redirecting to login');
+        router.replace('/login');
+        return;
+      }
+      
+      console.log('Session found for:', session.name);
+      setMember(session);
+      
       const collected = await DatabaseService.getCollectedStickers(session.memberId);
+      console.log('Collected stickers:', collected);
       setCollectedStickers(collected);
+      
+      // Load donors
+      const donorsData = await DatabaseService.getDonors();
+      console.log('Donors loaded:', donorsData.length);
+      setDonors(donorsData.slice(0, 6)); // Show only first 6
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setError('Failed to load user data');
+      setLoading(false);
     }
-    setMember(session);
-    
-    // Load donors
-    const donorsData = await DatabaseService.getDonors();
-    setDonors(donorsData.slice(0, 6)); // Show only first 6
   };
 
   const checkScratchAvailability = async () => {
-    const session = await StorageManager.getUserSession();
-    if (session) {
-      const canScratch = await DatabaseService.canScratchToday(session.memberId);
-      setCanScratchToday(canScratch);
+    try {
+      const session = await StorageManager.getUserSession();
+      if (session) {
+        const canScratch = await DatabaseService.canScratchToday(session.memberId);
+        console.log('Can scratch today:', canScratch);
+        setCanScratchToday(canScratch);
+      }
+    } catch (error) {
+      console.error('Error checking scratch availability:', error);
     }
   };
 
   const updateCountdown = async () => {
-    const session = await StorageManager.getUserSession();
-    if (session) {
-      const timeRemaining = await DatabaseService.getTimeUntilNextScratch(session.memberId);
-      setTimeUntilNextScratch(timeRemaining);
+    try {
+      const session = await StorageManager.getUserSession();
+      if (session) {
+        const timeRemaining = await DatabaseService.getTimeUntilNextScratch(session.memberId);
+        setTimeUntilNextScratch(timeRemaining);
+      }
+    } catch (error) {
+      console.error('Error updating countdown:', error);
     }
   };
 
@@ -97,6 +125,25 @@ export default function HomeScreen() {
     { id: '7', name: 'Vighnahar', collected: collectedStickers.includes('7') },
     { id: '8', name: 'Mahaganapati', collected: collectedStickers.includes('8') },
   ];
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading your blessings...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadUserData}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient

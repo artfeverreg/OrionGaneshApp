@@ -18,12 +18,17 @@ export default function RootLayout() {
   const checkAuthStatus = async () => {
     try {
       console.log('Checking auth status...');
+      console.log('Environment variables loaded:', {
+        supabaseUrl: !!process.env.EXPO_PUBLIC_SUPABASE_URL,
+        supabaseKey: !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      });
+      
       const session = await StorageManager.getUserSession();
       console.log('Session found:', !!session);
-      if (!session) {
-        console.log('No session, redirecting to login');
-        router.replace('/login');
-      }
+      
+      // Always show login screen initially for better UX
+      console.log('Redirecting to login screen');
+      router.replace('/login');
     } catch (error) {
       console.error('Error checking auth status:', error);
       setError('Failed to check authentication status');

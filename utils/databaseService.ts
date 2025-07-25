@@ -12,6 +12,7 @@ export class DatabaseService {
   static async login(username: string, password: string): Promise<UserSession | null> {
     try {
       console.log('Attempting login for:', username);
+      console.log('Supabase client initialized:', !!supabase);
       
       const { data: member, error } = await supabase
         .from('members')
