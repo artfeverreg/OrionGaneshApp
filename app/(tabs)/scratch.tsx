@@ -223,9 +223,7 @@ export default function ScratchScreen() {
             >
               <Gift size={60} color="#FFFFFF" />
               <Text style={styles.scratchText}>Scratch Here</Text>
-                  : timeUntilNextScratch > 0 
-                    ? `Next scratch in: ${formatCountdown(timeUntilNextScratch)}`
-                    : 'Checking availability...'
+              <Text style={styles.scratchSubtext}>
                 {scratchProgress > 0 ? `${Math.round(scratchProgress)}% revealed` : 'Use your finger to scratch'}
               </Text>
             </LinearGradient>
