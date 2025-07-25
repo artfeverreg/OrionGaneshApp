@@ -10,18 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Settings, 
-  Users, 
-  Gift, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search,
-  Calendar,
-  Star,
-  Crown
-} from 'lucide-react-native';
+import { Settings, Users, Gift, Plus, CreditCard as Edit, Trash2, Search, Calendar, Star, Crown } from 'lucide-react-native';
 import { StorageManager } from '../../utils/storage';
 import { UserSession } from '../../types/database';
 
