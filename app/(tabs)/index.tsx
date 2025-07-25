@@ -64,14 +64,10 @@ export default function HomeScreen() {
   };
 
   const checkScratchAvailability = async () => {
-    try {
-      const session = await StorageManager.getUserSession();
-      if (session) {
-        const canScratch = await DatabaseService.canScratchToday(session.memberId);
-        setCanScratchToday(canScratch);
-      }
-    } catch (error) {
-      console.error('Error checking scratch availability:', error);
+    const session = await StorageManager.getUserSession();
+    if (session) {
+      const canScratch = await DatabaseService.canScratchToday(session.memberId);
+      setCanScratchToday(canScratch);
     }
   };
 
@@ -439,5 +435,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#333333',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF0000',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF9933',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
