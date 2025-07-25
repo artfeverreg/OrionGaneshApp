@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,7 +30,6 @@ export default function ProfileScreen() {
     setCollectedStickers(collected);
   };
 
-  const collectedStickers = [
   const stickerCollection = [
     { id: '1', name: 'Mayureshwar', collected: collectedStickers.includes('1'), date: '2024-08-02' },
     { id: '2', name: 'Siddhivinayak', collected: collectedStickers.includes('2'), date: '2024-08-05' },
@@ -72,7 +71,6 @@ export default function ProfileScreen() {
               <User size={40} color="#FFFFFF" />
             </LinearGradient>
           </View>
-          <Text style={styles.memberName}>{member.name}</Text>
           <Text style={styles.memberName}>{member?.name || 'Loading...'}</Text>
           <Text style={styles.memberUsername}>@{member?.username || ''}</Text>
           <Text style={styles.memberId}>ID: {member?.memberId || ''}</Text>
