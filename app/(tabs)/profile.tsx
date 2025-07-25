@@ -29,7 +29,6 @@ export default function ProfileScreen() {
     setMember(session);
     setCollectedStickers(collected);
   };
-
   const stickerCollection = [
     { id: '1', name: 'Mayureshwar', collected: collectedStickers.includes('1'), date: '2024-08-02' },
     { id: '2', name: 'Siddhivinayak', collected: collectedStickers.includes('2'), date: '2024-08-05' },
