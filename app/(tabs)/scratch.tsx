@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Star, Gift, ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { StorageManager } from '../../utils/storage';
-import { ScratchCardAlgorithm } from '../../utils/scratchAlgorithm';
+import { DatabaseService } from '../../utils/databaseService';
 import { ScratchResult } from '../../types/database';
 
 const { width, height } = Dimensions.get('window');
@@ -35,7 +35,13 @@ export default function ScratchScreen() {
   }, []);
 
   const checkScratchAvailability = async () => {
-    const canScratchToday = await StorageManager.canScratchToday();
+    const session = await StorageManager.getUserSession();
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+    
+    const canScratchToday = await DatabaseService.canScratchToday(session.memberId);
     setCanScratch(canScratchToday);
     
     if (!canScratchToday) {
@@ -81,21 +87,17 @@ export default function ScratchScreen() {
   const revealSticker = async () => {
     setIsRevealed(true);
     
-    // Execute scratch algorithm
-    const algorithm = new ScratchCardAlgorithm(ScratchCardAlgorithm.getDefaultStickers());
-    const collectedStickers = await StorageManager.getCollectedStickers();
-    const result = algorithm.executeScatch(collectedStickers);
-    
-    setScratchResult(result);
-    
-    // Update last scratch time
-    await StorageManager.updateLastScratchTime();
-    
-    // If successful, add to collection
-    if (result.success && result.sticker) {
-      await StorageManager.addCollectedSticker(result.sticker.sticker_id);
+    const session = await StorageManager.getUserSession();
+    if (!session) {
+      router.replace('/login');
+      return;
     }
     
+    // Execute scratch using database
+    const result = await DatabaseService.executeScratch(session.memberId, false);
+    
+    setScratchResult(result);
+        
     // Animate reveal
     Animated.sequence([
       Animated.timing(scratchAnimation, {

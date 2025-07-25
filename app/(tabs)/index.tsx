@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Gift, Trophy, Star } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { StorageManager } from '../../utils/storage';
+import { DatabaseService } from '../../utils/databaseService';
 import { UserSession } from '../../types/database';
 
 const { width } = Dimensions.get('window');
@@ -22,14 +23,7 @@ export default function HomeScreen() {
   const [canScratchToday, setCanScratchToday] = useState(false);
   const [timeUntilNextScratch, setTimeUntilNextScratch] = useState(0);
 
-  const [donors, setDonors] = useState([
-    { name: 'Ramesh Patil' },
-    { name: 'Priya Sharma' },
-    { name: 'Suresh Kumar' },
-    { name: 'Anjali Desai' },
-    { name: 'Ganesh Traders' },
-    { name: 'Sai Industries' },
-  ]);
+  const [donors, setDonors] = useState<any[]>([]);
 
   useEffect(() => {
     loadUserData();
@@ -53,21 +47,34 @@ export default function HomeScreen() {
     
     return unsubscribe;
   }, []);
+  
   const loadUserData = async () => {
     const session = await StorageManager.getUserSession();
-    const collected = await StorageManager.getCollectedStickers();
+    if (session) {
+      const collected = await DatabaseService.getCollectedStickers(session.memberId);
+      setCollectedStickers(collected);
+    }
     setMember(session);
-    setCollectedStickers(collected);
+    
+    // Load donors
+    const donorsData = await DatabaseService.getDonors();
+    setDonors(donorsData.slice(0, 6)); // Show only first 6
   };
 
   const checkScratchAvailability = async () => {
-    const canScratch = await StorageManager.canScratchToday();
-    setCanScratchToday(canScratch);
+    const session = await StorageManager.getUserSession();
+    if (session) {
+      const canScratch = await DatabaseService.canScratchToday(session.memberId);
+      setCanScratchToday(canScratch);
+    }
   };
 
   const updateCountdown = async () => {
-    const timeRemaining = await StorageManager.getTimeUntilNextScratch();
-    setTimeUntilNextScratch(timeRemaining);
+    const session = await StorageManager.getUserSession();
+    if (session) {
+      const timeRemaining = await DatabaseService.getTimeUntilNextScratch(session.memberId);
+      setTimeUntilNextScratch(timeRemaining);
+    }
   };
 
   const formatCountdown = (milliseconds: number): string => {

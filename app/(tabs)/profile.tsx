@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Star, Calendar, Trophy, Gift, LogOut } from 'lucide-react-native';
 import { StorageManager } from '../../utils/storage';
+import { DatabaseService } from '../../utils/databaseService';
 import { UserSession } from '../../types/database';
 import { router } from 'expo-router';
 
@@ -32,9 +33,11 @@ export default function ProfileScreen() {
 
   const loadUserData = async () => {
     const session = await StorageManager.getUserSession();
-    const collected = await StorageManager.getCollectedStickers();
+    if (session) {
+      const collected = await DatabaseService.getCollectedStickers(session.memberId);
+      setCollectedStickers(collected);
+    }
     setMember(session);
-    setCollectedStickers(collected);
   };
   const stickerCollection = [
     { id: '1', name: 'Mayureshwar', collected: collectedStickers.includes('1'), date: '2024-08-02' },

@@ -8,28 +8,34 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Trophy, Medal, Star, Crown } from 'lucide-react-native';
+import { DatabaseService } from '../../utils/databaseService';
 
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState('collectors');
+  const [topCollectors, setTopCollectors] = useState<any[]>([]);
+  const [topDonors, setTopDonors] = useState<any[]>([]);
 
-  const topCollectors = [
-    { id: 1, name: 'Arjun Patil', stickers: 8, rank: 1 },
-    { id: 2, name: 'Priya Sharma', stickers: 7, rank: 2 },
-    { id: 3, name: 'Rajesh Kumar', stickers: 6, rank: 3 },
-    { id: 4, name: 'Sneha Desai', stickers: 5, rank: 4 },
-    { id: 5, name: 'Vikram Singh', stickers: 5, rank: 5 },
-    { id: 6, name: 'Anita Joshi', stickers: 4, rank: 6 },
-    { id: 7, name: 'Suresh Mehta', stickers: 4, rank: 7 },
-    { id: 8, name: 'Kavya Nair', stickers: 3, rank: 8 },
-  ];
+  useEffect(() => {
+    loadLeaderboardData();
+  }, []);
 
-  const topDonors = [
-    { id: 1, name: 'Ramesh Patil', amount: 25000, rank: 1 },
-    { id: 2, name: 'Suresh Industries', amount: 15000, rank: 2 },
-    { id: 3, name: 'Priya Sharma', amount: 10000, rank: 3 },
-    { id: 4, name: 'Ganesh Traders', amount: 8000, rank: 4 },
-    { id: 5, name: 'Anjali Desai', amount: 5000, rank: 5 },
-  ];
+  const loadLeaderboardData = async () => {
+    try {
+      const collectors = await DatabaseService.getLeaderboard();
+      setTopCollectors(collectors);
+      
+      const donors = await DatabaseService.getDonors();
+      const formattedDonors = donors.map((donor, index) => ({
+        id: donor.donor_id,
+        name: donor.name,
+        amount: donor.amount,
+        rank: index + 1
+      }));
+      setTopDonors(formattedDonors);
+    } catch (error) {
+      console.error('Error loading leaderboard data:', error);
+    }
+  };
 
   const getRankIcon = (rank) => {
     switch (rank) {

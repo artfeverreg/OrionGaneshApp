@@ -12,8 +12,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Lock, LogIn } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { DatabaseService } from '../utils/databaseService';
 import { StorageManager } from '../utils/storage';
-import { UserSession } from '../types/database';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -28,38 +28,23 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     
-    // Simulate API call with proper credentials
-    setTimeout(async () => {
+    try {
+      const userSession = await DatabaseService.login(username, password);
+      
       setIsLoading(false);
       
-      let userSession: UserSession;
-      
-      if (username === 'demo' && password === 'demo') {
-        userSession = {
-          memberId: 'ORN001',
-          name: 'Arjun Patil',
-          username: 'demo',
-          lastScratchTime: null,
-          collectedStickers: [],
-          isAdmin: false,
-        };
-      } else if (username === 'admin' && password === 'admin123') {
-        userSession = {
-          memberId: 'ADM001',
-          name: 'Admin User',
-          username: 'admin',
-          lastScratchTime: null,
-          collectedStickers: [],
-          isAdmin: true,
-        };
-      } else {
-        Alert.alert('Error', 'Invalid credentials.\n\nUser: demo/demo\nAdmin: admin/admin123');
+      if (!userSession) {
+        Alert.alert('Error', 'Invalid credentials');
         return;
       }
       
       await StorageManager.saveUserSession(userSession);
-        router.replace('/(tabs)');
-    }, 1000);
+      router.replace('/(tabs)');
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert('Error', 'Login failed. Please try again.');
+      console.error('Login error:', error);
+    }
   };
 
   return (

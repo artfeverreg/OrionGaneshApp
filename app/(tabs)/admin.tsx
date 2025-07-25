@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Settings, Users, Gift, Plus, CreditCard as Edit, Trash2, Search, Calendar, Star, Crown } from 'lucide-react-native';
 import { StorageManager } from '../../utils/storage';
+import { DatabaseService } from '../../utils/databaseService';
 import { UserSession } from '../../types/database';
 
 interface MockUser {
@@ -37,52 +38,48 @@ export default function AdminScreen() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<MockUser | null>(null);
   
-  // Mock data - in real app this would come from database
   const [inventory, setInventory] = useState<ScratchInventory>({
-    totalCards: 1000,
-    usedCards: 156,
-    remainingCards: 844,
-    paidCards: 25,
+    totalCards: 0,
+    usedCards: 0,
+    remainingCards: 0,
+    paidCards: 0,
   });
 
-  const [users, setUsers] = useState<MockUser[]>([
-    {
-      id: '1',
-      name: 'Arjun Patil',
-      username: 'demo',
-      memberId: 'ORN001',
-      collectedStickers: ['1', '2', '3'],
-      lastScratchTime: new Date('2024-08-15'),
-      paidScratchAvailable: false,
-    },
-    {
-      id: '2',
-      name: 'Priya Sharma',
-      username: 'priya',
-      memberId: 'ORN002',
-      collectedStickers: ['1', '2', '4', '5'],
-      lastScratchTime: new Date('2024-08-14'),
-      paidScratchAvailable: true,
-    },
-    {
-      id: '3',
-      name: 'Rajesh Kumar',
-      username: 'rajesh',
-      memberId: 'ORN003',
-      collectedStickers: ['1', '3', '6'],
-      lastScratchTime: new Date('2024-08-13'),
-      paidScratchAvailable: false,
-    },
-    {
-      id: '4',
-      name: 'Sneha Desai',
-      username: 'sneha',
-      memberId: 'ORN004',
-      collectedStickers: ['2', '4'],
-      lastScratchTime: new Date('2024-08-12'),
-      paidScratchAvailable: false,
-    },
-  ]);
+  const [users, setUsers] = useState<MockUser[]>([]);
+
+  useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  const loadAdminData = async () => {
+    try {
+      // Load inventory stats
+      const stats = await DatabaseService.getInventoryStats();
+      setInventory(stats);
+
+      // Load all members
+      const members = await DatabaseService.getAllMembers();
+      const formattedUsers = await Promise.all(
+        members.map(async (member) => {
+          const collectedStickers = await DatabaseService.getCollectedStickers(member.member_id);
+          const lastScratchTime = await DatabaseService.getTimeUntilNextScratch(member.member_id);
+          
+          return {
+            id: member.member_id,
+            name: member.name,
+            username: member.username,
+            memberId: member.member_id.substring(0, 8).toUpperCase(),
+            collectedStickers,
+            lastScratchTime: lastScratchTime > 0 ? new Date(Date.now() - (24 * 60 * 60 * 1000 - lastScratchTime)) : null,
+            paidScratchAvailable: member.paid_scratch_available,
+          };
+        })
+      );
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error('Error loading admin data:', error);
+    }
+  };
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,24 +94,30 @@ export default function AdminScreen() {
 
   const confirmAssignScratchCard = () => {
     if (selectedUser) {
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === selectedUser.id
-            ? { ...user, paidScratchAvailable: true }
-            : user
-        )
-      );
-      
-      setInventory(prev => ({
-        ...prev,
-        paidCards: prev.paidCards + 1,
-      }));
+      DatabaseService.assignPaidScratch(selectedUser.id).then((success) => {
+        if (success) {
+          setUsers(prevUsers =>
+            prevUsers.map(user =>
+              user.id === selectedUser.id
+                ? { ...user, paidScratchAvailable: true }
+                : user
+            )
+          );
+          
+          setInventory(prev => ({
+            ...prev,
+            paidCards: prev.paidCards + 1,
+          }));
 
-      Alert.alert(
-        'Success',
-        `Paid scratch card assigned to ${selectedUser.name}`,
-        [{ text: 'OK' }]
-      );
+          Alert.alert(
+            'Success',
+            `Paid scratch card assigned to ${selectedUser.name}`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Error', 'Failed to assign scratch card');
+        }
+      });
     }
     setShowAssignModal(false);
     setSelectedUser(null);
@@ -129,19 +132,24 @@ export default function AdminScreen() {
         {
           text: 'Revoke',
           style: 'destructive',
-          onPress: () => {
-            setUsers(prevUsers =>
-              prevUsers.map(u =>
-                u.id === user.id
-                  ? { ...u, paidScratchAvailable: false }
-                  : u
-              )
-            );
-            
-            setInventory(prev => ({
-              ...prev,
-              paidCards: Math.max(0, prev.paidCards - 1),
-            }));
+          onPress: async () => {
+            const success = await DatabaseService.revokePaidScratch(user.id);
+            if (success) {
+              setUsers(prevUsers =>
+                prevUsers.map(u =>
+                  u.id === user.id
+                    ? { ...u, paidScratchAvailable: false }
+                    : u
+                )
+              );
+              
+              setInventory(prev => ({
+                ...prev,
+                paidCards: Math.max(0, prev.paidCards - 1),
+              }));
+            } else {
+              Alert.alert('Error', 'Failed to revoke scratch card');
+            }
           }
         }
       ]
