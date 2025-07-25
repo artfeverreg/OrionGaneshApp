@@ -51,16 +51,31 @@ export default function HomeScreen() {
   }, []);
   
   const loadUserData = async () => {
-    const session = await StorageManager.getUserSession();
-    if (session) {
-      const collected = await DatabaseService.getCollectedStickers(session.memberId);
-      setCollectedStickers(collected);
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Loading user data...');
+      
+      const session = await StorageManager.getUserSession();
+      console.log('Session loaded:', !!session);
+      
+      if (session) {
+        const collected = await DatabaseService.getCollectedStickers(session.memberId);
+        console.log('Collected stickers:', collected);
+        setCollectedStickers(collected);
+      }
+      setMember(session);
+      
+      // Load donors
+      const donorsData = await DatabaseService.getDonors();
+      console.log('Donors loaded:', donorsData.length);
+      setDonors(donorsData.slice(0, 6)); // Show only first 6
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setError('Failed to load user data');
+    } finally {
+      setLoading(false);
     }
-    setMember(session);
-    
-    // Load donors
-    const donorsData = await DatabaseService.getDonors();
-    setDonors(donorsData.slice(0, 6)); // Show only first 6
   };
 
   const checkScratchAvailability = async () => {
