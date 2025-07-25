@@ -11,34 +11,71 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gift, Trophy, Star } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { StorageManager } from '../../utils/storage';
+import { UserSession } from '../../types/database';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const [member, setMember] = useState({
-    name: 'Devotee Name',
-    collectedStickers: 3,
-    totalStickers: 9,
-  });
+  const [member, setMember] = useState<UserSession | null>(null);
+  const [collectedStickers, setCollectedStickers] = useState<string[]>([]);
+  const [canScratchToday, setCanScratchToday] = useState(false);
+  const [timeUntilNextScratch, setTimeUntilNextScratch] = useState(0);
 
   const [donors, setDonors] = useState([
-    { name: 'Ramesh Patil', amount: 5000 },
-    { name: 'Priya Sharma', amount: 3000 },
-    { name: 'Suresh Kumar', amount: 2500 },
-    { name: 'Anjali Desai', amount: 2000 },
+    { name: 'Ramesh Patil' },
+    { name: 'Priya Sharma' },
+    { name: 'Suresh Kumar' },
+    { name: 'Anjali Desai' },
+    { name: 'Ganesh Traders' },
+    { name: 'Sai Industries' },
   ]);
 
-  const [canScratchToday, setCanScratchToday] = useState(true);
+  useEffect(() => {
+    loadUserData();
+    checkScratchAvailability();
+    
+    // Update countdown every second
+    const interval = setInterval(() => {
+      updateCountdown();
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadUserData = async () => {
+    const session = await StorageManager.getUserSession();
+    const collected = await StorageManager.getCollectedStickers();
+    setMember(session);
+    setCollectedStickers(collected);
+  };
+
+  const checkScratchAvailability = async () => {
+    const canScratch = await StorageManager.canScratchToday();
+    setCanScratchToday(canScratch);
+  };
+
+  const updateCountdown = async () => {
+    const timeRemaining = await StorageManager.getTimeUntilNextScratch();
+    setTimeUntilNextScratch(timeRemaining);
+  };
+
+  const formatCountdown = (milliseconds: number): string => {
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   const ashtavinayakStickers = [
-    { id: 1, name: 'Mayureshwar', collected: true },
-    { id: 2, name: 'Siddhivinayak', collected: true },
-    { id: 3, name: 'Ballaleshwar', collected: true },
-    { id: 4, name: 'Varadavinayak', collected: false },
-    { id: 5, name: 'Chintamani', collected: false },
-    { id: 6, name: 'Girijatmaj', collected: false },
-    { id: 7, name: 'Vighnahar', collected: false },
-    { id: 8, name: 'Mahaganapati', collected: false },
+    { id: '1', name: 'Mayureshwar', collected: collectedStickers.includes('1') },
+    { id: '2', name: 'Siddhivinayak', collected: collectedStickers.includes('2') },
+    { id: '3', name: 'Ballaleshwar', collected: collectedStickers.includes('3') },
+    { id: '4', name: 'Varadavinayak', collected: collectedStickers.includes('4') },
+    { id: '5', name: 'Chintamani', collected: collectedStickers.includes('5') },
+    { id: '6', name: 'Girijatmaj', collected: collectedStickers.includes('6') },
+    { id: '7', name: 'Vighnahar', collected: collectedStickers.includes('7') },
+    { id: '8', name: 'Mahaganapati', collected: collectedStickers.includes('8') },
   ];
 
   return (
@@ -50,7 +87,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>🙏 Ganpati Bappa Morya 🙏</Text>
-          <Text style={styles.memberName}>Welcome, {member.name}</Text>
+          <Text style={styles.memberName}>Welcome, {member?.name || 'Devotee'}</Text>
         </View>
 
         {/* Donor Flash Banner */}
@@ -64,7 +101,6 @@ export default function HomeScreen() {
               {donors.map((donor, index) => (
                 <View key={index} style={styles.donorItem}>
                   <Text style={styles.donorName}>{donor.name}</Text>
-                  <Text style={styles.donorAmount}>₹{donor.amount}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -88,7 +124,10 @@ export default function HomeScreen() {
                 {canScratchToday ? 'Scratch Your Card' : 'Come Back Tomorrow'}
               </Text>
               <Text style={styles.scratchCardSubtext}>
-                {canScratchToday ? 'Tap to reveal your blessing' : 'Already scratched today'}
+                {canScratchToday 
+                  ? 'Tap to reveal your blessing' 
+                  : `Next scratch in: ${formatCountdown(timeUntilNextScratch)}`
+                }
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -131,12 +170,12 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Your Progress</Text>
           <View style={styles.progressCard}>
             <View style={styles.progressItem}>
-              <Text style={styles.progressNumber}>{member.collectedStickers}</Text>
+              <Text style={styles.progressNumber}>{collectedStickers.length}</Text>
               <Text style={styles.progressLabel}>Stickers Collected</Text>
             </View>
             <View style={styles.progressDivider} />
             <View style={styles.progressItem}>
-              <Text style={styles.progressNumber}>{member.totalStickers - member.collectedStickers}</Text>
+              <Text style={styles.progressNumber}>{8 - collectedStickers.length}</Text>
               <Text style={styles.progressLabel}>Remaining</Text>
             </View>
           </View>
@@ -210,11 +249,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
-  },
-  donorAmount: {
-    color: '#FFD700',
-    fontSize: 12,
-    fontWeight: 'bold',
+    textAlign: 'center',
   },
   cardSection: {
     marginHorizontal: 20,

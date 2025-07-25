@@ -43,4 +43,15 @@ export interface ScratchResult {
   sticker?: Sticker;
   message: string;
   isSpecialPrize?: boolean;
+  probability?: number;
+  betterLuckNextTime?: boolean;
+}
+
+export interface UserSession {
+  memberId: string;
+  name: string;
+  username: string;
+  lastScratchTime: Date | null;
+  collectedStickers: string[];
+  isAdmin: boolean;
 }

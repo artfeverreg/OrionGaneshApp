@@ -49,7 +49,21 @@ export class ScratchCardAlgorithm {
     if (pool.length === 0) {
       return {
         success: false,
-        message: 'No stickers available at this time'
+        message: 'No stickers available at this time',
+        betterLuckNextTime: true,
+        probability: 0
+      };
+    }
+
+    // 30% chance of getting "Better luck next time"
+    const shouldGetSticker = Math.random() > 0.3;
+    
+    if (!shouldGetSticker) {
+      return {
+        success: false,
+        message: 'Better luck next time! 🍀',
+        betterLuckNextTime: true,
+        probability: 30
       };
     }
 
@@ -74,7 +88,8 @@ export class ScratchCardAlgorithm {
       message: isSpecialPrize 
         ? '🎉 Congratulations! You won the Mystery Box - Orion Bappa! 🎉'
         : `You received: ${selectedSticker.name}`,
-      isSpecialPrize
+      isSpecialPrize,
+      probability: selectedSticker.probability
     };
   }
 

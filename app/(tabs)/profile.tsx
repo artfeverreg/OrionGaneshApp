@@ -9,29 +9,37 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Star, Calendar, Trophy, Gift, LogOut } from 'lucide-react-native';
+import { StorageManager } from '../../utils/storage';
+import { UserSession } from '../../types/database';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
-  const [member] = useState({
-    id: 'ORN001',
-    name: 'Arjun Patil',
-    username: 'arjun.patil',
-    joinDate: '2024-08-01',
-    collectedStickers: 3,
-    totalStickers: 9,
-    scratchCount: 15,
-    lastScratch: '2024-08-15',
-    rank: 8,
-  });
+  const [member, setMember] = useState<UserSession | null>(null);
+  const [collectedStickers, setCollectedStickers] = useState<string[]>([]);
+  const [scratchCount, setScratchCount] = useState(15);
+  const [rank, setRank] = useState(8);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    const session = await StorageManager.getUserSession();
+    const collected = await StorageManager.getCollectedStickers();
+    setMember(session);
+    setCollectedStickers(collected);
+  };
 
   const collectedStickers = [
-    { id: 1, name: 'Mayureshwar', collected: true, date: '2024-08-02' },
-    { id: 2, name: 'Siddhivinayak', collected: true, date: '2024-08-05' },
-    { id: 3, name: 'Ballaleshwar', collected: true, date: '2024-08-10' },
-    { id: 4, name: 'Varadavinayak', collected: false, date: null },
-    { id: 5, name: 'Chintamani', collected: false, date: null },
-    { id: 6, name: 'Girijatmaj', collected: false, date: null },
-    { id: 7, name: 'Vighnahar', collected: false, date: null },
-    { id: 8, name: 'Mahaganapati', collected: false, date: null },
+  const stickerCollection = [
+    { id: '1', name: 'Mayureshwar', collected: collectedStickers.includes('1'), date: '2024-08-02' },
+    { id: '2', name: 'Siddhivinayak', collected: collectedStickers.includes('2'), date: '2024-08-05' },
+    { id: '3', name: 'Ballaleshwar', collected: collectedStickers.includes('3'), date: '2024-08-10' },
+    { id: '4', name: 'Varadavinayak', collected: collectedStickers.includes('4'), date: null },
+    { id: '5', name: 'Chintamani', collected: collectedStickers.includes('5'), date: null },
+    { id: '6', name: 'Girijatmaj', collected: collectedStickers.includes('6'), date: null },
+    { id: '7', name: 'Vighnahar', collected: collectedStickers.includes('7'), date: null },
+    { id: '8', name: 'Mahaganapati', collected: collectedStickers.includes('8'), date: null },
   ];
 
   const handleLogout = () => {
@@ -40,9 +48,9 @@ export default function ProfileScreen() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => {
-          // Handle logout logic
-          console.log('Logging out...');
+        { text: 'Logout', style: 'destructive', onPress: async () => {
+          await StorageManager.clearUserSession();
+          router.replace('/login');
         }},
       ]
     );
@@ -65,8 +73,9 @@ export default function ProfileScreen() {
             </LinearGradient>
           </View>
           <Text style={styles.memberName}>{member.name}</Text>
-          <Text style={styles.memberUsername}>@{member.username}</Text>
-          <Text style={styles.memberId}>ID: {member.id}</Text>
+          <Text style={styles.memberName}>{member?.name || 'Loading...'}</Text>
+          <Text style={styles.memberUsername}>@{member?.username || ''}</Text>
+          <Text style={styles.memberId}>ID: {member?.memberId || ''}</Text>
         </View>
 
         {/* Stats Cards */}
@@ -74,19 +83,19 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Star size={24} color="#FFD700" />
-              <Text style={styles.statNumber}>{member.collectedStickers}</Text>
+              <Text style={styles.statNumber}>{collectedStickers.length}</Text>
               <Text style={styles.statLabel}>Stickers</Text>
             </View>
             <View style={styles.statCard}>
               <Trophy size={24} color="#FF9933" />
-              <Text style={styles.statNumber}>#{member.rank}</Text>
+              <Text style={styles.statNumber}>#{rank}</Text>
               <Text style={styles.statLabel}>Rank</Text>
             </View>
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Gift size={24} color="#CC0000" />
-              <Text style={styles.statNumber}>{member.scratchCount}</Text>
+              <Text style={styles.statNumber}>{scratchCount}</Text>
               <Text style={styles.statLabel}>Total Scratches</Text>
             </View>
             <View style={styles.statCard}>
@@ -101,7 +110,7 @@ export default function ProfileScreen() {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>My Ashtavinayak Collection</Text>
           <View style={styles.collectionGrid}>
-            {collectedStickers.map((sticker) => (
+            {stickerCollection.map((sticker) => (
               <View key={sticker.id} style={styles.stickerCard}>
                 <View
                   style={[
@@ -157,19 +166,19 @@ export default function ProfileScreen() {
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Member Since:</Text>
               <Text style={styles.infoValue}>
-                {new Date(member.joinDate).toLocaleDateString()}
+                August 1, 2024
               </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Last Scratch:</Text>
               <Text style={styles.infoValue}>
-                {new Date(member.lastScratch).toLocaleDateString()}
+                {member?.lastScratchTime ? new Date(member.lastScratchTime).toLocaleDateString() : 'Never'}
               </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Collection Progress:</Text>
               <Text style={styles.infoValue}>
-                {member.collectedStickers}/{member.totalStickers} ({Math.round((member.collectedStickers / member.totalStickers) * 100)}%)
+                {collectedStickers.length}/8 ({Math.round((collectedStickers.length / 8) * 100)}%)
               </Text>
             </View>
           </View>

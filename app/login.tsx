@@ -12,6 +12,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Lock, LogIn } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { StorageManager } from '../utils/storage';
+import { UserSession } from '../types/database';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -26,14 +28,37 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    // Simulate API call with proper credentials
+    setTimeout(async () => {
       setIsLoading(false);
+      
+      let userSession: UserSession;
+      
       if (username === 'demo' && password === 'demo') {
-        router.replace('/(tabs)');
+        userSession = {
+          memberId: 'ORN001',
+          name: 'Arjun Patil',
+          username: 'demo',
+          lastScratchTime: null,
+          collectedStickers: [],
+          isAdmin: false,
+        };
+      } else if (username === 'admin' && password === 'admin123') {
+        userSession = {
+          memberId: 'ADM001',
+          name: 'Admin User',
+          username: 'admin',
+          lastScratchTime: null,
+          collectedStickers: [],
+          isAdmin: true,
+        };
       } else {
-        Alert.alert('Error', 'Invalid credentials. Use demo/demo to login.');
+        Alert.alert('Error', 'Invalid credentials.\n\nUser: demo/demo\nAdmin: admin/admin123');
+        return;
       }
+      
+      await StorageManager.saveUserSession(userSession);
+        router.replace('/(tabs)');
     }, 1000);
   };
 
@@ -106,8 +131,8 @@ export default function LoginScreen() {
             {/* Demo Credentials */}
             <View style={styles.demoContainer}>
               <Text style={styles.demoTitle}>Demo Credentials:</Text>
-              <Text style={styles.demoText}>Username: demo</Text>
-              <Text style={styles.demoText}>Password: demo</Text>
+              <Text style={styles.demoText}>User: demo / demo</Text>
+              <Text style={styles.demoText}>Admin: admin / admin123</Text>
             </View>
           </View>
 

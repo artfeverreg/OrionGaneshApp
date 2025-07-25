@@ -12,6 +12,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, Gift, ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { StorageManager } from '../../utils/storage';
+import { ScratchCardAlgorithm } from '../../utils/scratchAlgorithm';
+import { ScratchResult } from '../../types/database';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -20,27 +23,40 @@ const CARD_HEIGHT = 300;
 export default function ScratchScreen() {
   const [isScratching, setIsScratching] = useState(false);
   const [scratchProgress, setScratchProgress] = useState(0);
-  const [revealedSticker, setRevealedSticker] = useState(null);
+  const [scratchResult, setScratchResult] = useState<ScratchResult | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [canScratch, setCanScratch] = useState(false);
   
   const scratchAnimation = useRef(new Animated.Value(1)).current;
   const revealAnimation = useRef(new Animated.Value(0)).current;
 
-  // Mock sticker data
-  const stickerTypes = [
-    { id: 1, name: 'Mayureshwar', type: 'Common', rarity: '⭐' },
-    { id: 2, name: 'Siddhivinayak', type: 'Rare', rarity: '⭐⭐' },
-    { id: 3, name: 'Orion Bappa', type: 'Mystery', rarity: '🎁' },
-  ];
+  useEffect(() => {
+    checkScratchAvailability();
+  }, []);
+
+  const checkScratchAvailability = async () => {
+    const canScratchToday = await StorageManager.canScratchToday();
+    setCanScratch(canScratchToday);
+    
+    if (!canScratchToday) {
+      Alert.alert(
+        'Already Scratched Today',
+        'You can only scratch one card per day. Come back tomorrow!',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    }
+  };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: () => {
-      setIsScratching(true);
+      if (canScratch) {
+        setIsScratching(true);
+      }
     },
     onPanResponderMove: (evt, gestureState) => {
-      if (isScratching && !isRevealed) {
+      if (isScratching && !isRevealed && canScratch) {
         const newProgress = Math.min(scratchProgress + 2, 100);
         setScratchProgress(newProgress);
         
@@ -62,12 +78,23 @@ export default function ScratchScreen() {
     },
   });
 
-  const revealSticker = () => {
+  const revealSticker = async () => {
     setIsRevealed(true);
     
-    // Simulate weighted random selection
-    const randomSticker = stickerTypes[Math.floor(Math.random() * stickerTypes.length)];
-    setRevealedSticker(randomSticker);
+    // Execute scratch algorithm
+    const algorithm = new ScratchCardAlgorithm(ScratchCardAlgorithm.getDefaultStickers());
+    const collectedStickers = await StorageManager.getCollectedStickers();
+    const result = algorithm.executeScatch(collectedStickers);
+    
+    setScratchResult(result);
+    
+    // Update last scratch time
+    await StorageManager.updateLastScratchTime();
+    
+    // If successful, add to collection
+    if (result.success && result.sticker) {
+      await StorageManager.addCollectedSticker(result.sticker.sticker_id);
+    }
     
     // Animate reveal
     Animated.sequence([
@@ -85,25 +112,29 @@ export default function ScratchScreen() {
     
     // Show congratulations
     setTimeout(() => {
-      Alert.alert(
-        '🎉 Ganpati Bappa Morya! 🎉',
-        `You received: ${randomSticker.name}\nRarity: ${randomSticker.rarity}`,
-        [
-          {
-            text: 'Collect',
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      if (result.success) {
+        Alert.alert(
+          '🎉 Ganpati Bappa Morya! 🎉',
+          `${result.message}\nProbability: ${result.probability}%`,
+          [{ text: 'Collect', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert(
+          result.betterLuckNextTime ? '🍀 Better Luck Next Time!' : 'Oops!',
+          `${result.message}\nChance of getting sticker: ${100 - (result.probability || 0)}%`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      }
     }, 1000);
   };
 
   const resetCard = () => {
     setScratchProgress(0);
-    setRevealedSticker(null);
+    setScratchResult(null);
     setIsRevealed(false);
     scratchAnimation.setValue(1);
     revealAnimation.setValue(0);
+    checkScratchAvailability();
   };
 
   return (
@@ -134,10 +165,10 @@ export default function ScratchScreen() {
         <View style={styles.scratchCard} {...panResponder.panHandlers}>
           {/* Background with revealed sticker */}
           <LinearGradient
-            colors={['#FFD700', '#FF9933', '#CC0000']}
+            colors={scratchResult?.success ? ['#FFD700', '#FF9933', '#CC0000'] : ['#CCCCCC', '#999999', '#666666']}
             style={styles.cardBackground}
           >
-            {revealedSticker && (
+            {scratchResult && (
               <Animated.View
                 style={[
                   styles.revealedContent,
@@ -154,10 +185,20 @@ export default function ScratchScreen() {
                   },
                 ]}
               >
-                <Star size={80} color="#FFD700" />
-                <Text style={styles.stickerName}>{revealedSticker.name}</Text>
-                <Text style={styles.stickerRarity}>{revealedSticker.rarity}</Text>
-                <Text style={styles.stickerType}>{revealedSticker.type}</Text>
+                {scratchResult.success ? (
+                  <>
+                    <Star size={80} color="#FFD700" />
+                    <Text style={styles.stickerName}>{scratchResult.sticker?.name}</Text>
+                    <Text style={styles.stickerType}>{scratchResult.sticker?.type}</Text>
+                    <Text style={styles.probabilityText}>Probability: {scratchResult.probability}%</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.sadEmoji}>😔</Text>
+                    <Text style={styles.betterLuckText}>Better Luck Next Time!</Text>
+                    <Text style={styles.probabilityText}>Success Rate: {100 - (scratchResult.probability || 0)}%</Text>
+                  </>
+                )}
               </Animated.View>
             )}
           </LinearGradient>
@@ -203,8 +244,8 @@ export default function ScratchScreen() {
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
         {isRevealed ? (
-          <TouchableOpacity style={styles.actionButton} onPress={resetCard}>
-            <Text style={styles.actionButtonText}>Try Another Card</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.back()}>
+            <Text style={styles.actionButtonText}>Back to Home</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -298,15 +339,27 @@ const styles = StyleSheet.create({
     marginTop: 20,
     textAlign: 'center',
   },
-  stickerRarity: {
-    fontSize: 24,
-    marginTop: 10,
-  },
   stickerType: {
     fontSize: 16,
     color: '#FFFFFF',
     marginTop: 5,
     opacity: 0.9,
+  },
+  probabilityText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginTop: 10,
+    opacity: 0.8,
+  },
+  sadEmoji: {
+    fontSize: 80,
+  },
+  betterLuckText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 20,
+    textAlign: 'center',
   },
   scratchOverlay: {
     position: 'absolute',
