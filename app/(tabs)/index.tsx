@@ -38,11 +38,21 @@ export default function HomeScreen() {
     // Update countdown every second
     const interval = setInterval(() => {
       updateCountdown();
+      checkScratchAvailability();
     }, 1000);
     
     return () => clearInterval(interval);
   }, []);
 
+  // Listen for focus to refresh data when returning from scratch screen
+  useEffect(() => {
+    const unsubscribe = router.addListener?.('focus', () => {
+      loadUserData();
+      checkScratchAvailability();
+    });
+    
+    return unsubscribe;
+  }, []);
   const loadUserData = async () => {
     const session = await StorageManager.getUserSession();
     const collected = await StorageManager.getCollectedStickers();
@@ -61,6 +71,7 @@ export default function HomeScreen() {
   };
 
   const formatCountdown = (milliseconds: number): string => {
+    if (milliseconds <= 0) return '00:00:00';
     const hours = Math.floor(milliseconds / (1000 * 60 * 60));
     const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
@@ -126,7 +137,9 @@ export default function HomeScreen() {
               <Text style={styles.scratchCardSubtext}>
                 {canScratchToday 
                   ? 'Tap to reveal your blessing' 
-                  : `Next scratch in: ${formatCountdown(timeUntilNextScratch)}`
+                  : timeUntilNextScratch > 0 
+                    ? `Next scratch in: ${formatCountdown(timeUntilNextScratch)}`
+                    : 'Checking availability...'
                 }
               </Text>
             </LinearGradient>

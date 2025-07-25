@@ -21,6 +21,13 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadUserData();
+    
+    // Listen for focus to refresh data
+    const unsubscribe = router.addListener?.('focus', () => {
+      loadUserData();
+    });
+    
+    return unsubscribe;
   }, []);
 
   const loadUserData = async () => {

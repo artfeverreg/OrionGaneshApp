@@ -116,13 +116,18 @@ export default function ScratchScreen() {
         Alert.alert(
           '🎉 Ganpati Bappa Morya! 🎉',
           `${result.message}\nProbability: ${result.probability}%`,
-          [{ text: 'Collect', onPress: () => router.back() }]
+          [{ text: 'Collect', onPress: () => {
+            // Force refresh of home screen data
+            router.back();
+          }}]
         );
       } else {
         Alert.alert(
           result.betterLuckNextTime ? '🍀 Better Luck Next Time!' : 'Oops!',
           `${result.message}\nChance of getting sticker: ${100 - (result.probability || 0)}%`,
-          [{ text: 'OK', onPress: () => router.back() }]
+          [{ text: 'OK', onPress: () => {
+            router.back();
+          }}]
         );
       }
     }, 1000);
@@ -218,7 +223,9 @@ export default function ScratchScreen() {
             >
               <Gift size={60} color="#FFFFFF" />
               <Text style={styles.scratchText}>Scratch Here</Text>
-              <Text style={styles.scratchSubtext}>
+                  : timeUntilNextScratch > 0 
+                    ? `Next scratch in: ${formatCountdown(timeUntilNextScratch)}`
+                    : 'Checking availability...'
                 {scratchProgress > 0 ? `${Math.round(scratchProgress)}% revealed` : 'Use your finger to scratch'}
               </Text>
             </LinearGradient>

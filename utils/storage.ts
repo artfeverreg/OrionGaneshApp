@@ -59,6 +59,13 @@ export class StorageManager {
         if (!session.collectedStickers.includes(stickerId)) {
           session.collectedStickers.push(stickerId);
           await this.saveUserSession(session);
+          
+          // Also store separately for immediate access
+          const currentStickers = await this.getCollectedStickers();
+          if (!currentStickers.includes(stickerId)) {
+            currentStickers.push(stickerId);
+            await AsyncStorage.setItem(STORAGE_KEYS.COLLECTED_STICKERS, JSON.stringify(currentStickers));
+          }
         }
       }
     } catch (error) {
@@ -68,6 +75,13 @@ export class StorageManager {
 
   static async getCollectedStickers(): Promise<string[]> {
     try {
+      // First try to get from separate storage
+      const stickersData = await AsyncStorage.getItem(STORAGE_KEYS.COLLECTED_STICKERS);
+      if (stickersData) {
+        return JSON.parse(stickersData);
+      }
+      
+      // Fallback to session data
       const session = await this.getUserSession();
       return session?.collectedStickers || [];
     } catch (error) {
@@ -88,45 +102,39 @@ export class StorageManager {
     }
   }
 
-  static canScratchToday(): Promise<boolean> {
-    return new Promise(async (resolve) => {
+  static async canScratchToday(): Promise<boolean> {
       try {
         const lastScratch = await this.getLastScratchTime();
         if (!lastScratch) {
-          resolve(true);
-          return;
+          return true;
         }
 
         const now = new Date();
         const timeDiff = now.getTime() - lastScratch.getTime();
         const hoursDiff = timeDiff / (1000 * 60 * 60);
         
-        resolve(hoursDiff >= 24);
+        return hoursDiff >= 24;
       } catch (error) {
         console.error('Error checking scratch availability:', error);
-        resolve(true);
+        return true;
       }
-    });
   }
 
-  static getTimeUntilNextScratch(): Promise<number> {
-    return new Promise(async (resolve) => {
+  static async getTimeUntilNextScratch(): Promise<number> {
       try {
         const lastScratch = await this.getLastScratchTime();
         if (!lastScratch) {
-          resolve(0);
-          return;
+          return 0;
         }
 
         const now = new Date();
         const nextScratchTime = new Date(lastScratch.getTime() + (24 * 60 * 60 * 1000));
         const timeRemaining = Math.max(0, nextScratchTime.getTime() - now.getTime());
         
-        resolve(timeRemaining);
+        return timeRemaining;
       } catch (error) {
         console.error('Error calculating time until next scratch:', error);
-        resolve(0);
+        return 0;
       }
-    });
   }
 }

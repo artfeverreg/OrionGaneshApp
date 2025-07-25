@@ -1,7 +1,21 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Trophy, User, Gift } from 'lucide-react-native';
+import { Chrome as Home, Trophy, User, Gift, Settings } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { StorageManager } from '../../utils/storage';
+import { UserSession } from '../../types/database';
 
 export default function TabLayout() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    const session = await StorageManager.getUserSession();
+    setIsAdmin(session?.isAdmin || false);
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -57,6 +71,17 @@ export default function TabLayout() {
           ),
         }}
       />
+      {isAdmin && (
+        <Tabs.Screen
+          name="admin"
+          options={{
+            title: 'Admin',
+            tabBarIcon: ({ size, color }) => (
+              <Settings size={size} color={color} />
+            ),
+          }}
+        />
+      )}
     </Tabs>
   );
 }
