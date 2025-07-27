@@ -26,13 +26,15 @@ export default function RootLayout() {
       const session = await StorageManager.getUserSession();
       console.log('Session found:', !!session);
       
+      // Set auth checked first to ensure Stack is mounted
+      setIsAuthChecked(true);
+      
       // Always show login screen initially for better UX
       console.log('Redirecting to login screen');
       router.replace('/login');
     } catch (error) {
       console.error('Error checking auth status:', error);
       setError('Failed to check authentication status');
-    } finally {
       setIsAuthChecked(true);
     }
   };

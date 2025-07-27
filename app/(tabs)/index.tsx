@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gift, Trophy, Star } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { StorageManager } from '../../utils/storage';
 import { DatabaseService } from '../../utils/databaseService';
 import { UserSession } from '../../types/database';
@@ -41,15 +42,13 @@ export default function HomeScreen() {
   }, []);
 
   // Listen for focus to refresh data when returning from scratch screen
-  useEffect(() => {
-    const unsubscribe = router.addListener('focus', () => {
+  useFocusEffect(
+    React.useCallback(() => {
       console.log('Home screen focused, refreshing data...');
       loadUserData();
       checkScratchAvailability();
-    });
-    
-    return unsubscribe;
-  }, []);
+    }, [])
+  );
   
   const loadUserData = async () => {
     try {
