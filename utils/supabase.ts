@@ -11,6 +11,10 @@ console.log('Supabase Environment Check:', {
   keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
 });
 
+// Declare variables at top level
+let supabase: any;
+let setCurrentMember: (memberId: string) => Promise<void>;
+
 if (!supabaseUrl || !supabaseAnonKey || 
     supabaseUrl === 'your_supabase_url_here' || 
     supabaseAnonKey === 'your_supabase_anon_key_here') {
@@ -18,7 +22,7 @@ if (!supabaseUrl || !supabaseAnonKey ||
   console.error('Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file');
   
   // Create a mock client to prevent crashes
-  export const supabase = {
+  supabase = {
     from: () => ({
       select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
       insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
@@ -26,16 +30,16 @@ if (!supabaseUrl || !supabaseAnonKey ||
       delete: () => ({ eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) })
     }),
     rpc: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-  } as any;
+  };
   
-  export const setCurrentMember = async (memberId: string) => {
+  setCurrentMember = async (memberId: string) => {
     console.log('Mock setCurrentMember called with:', memberId);
   };
 } else {
-  export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
   
   // Helper function to set current member context for RLS
-  export const setCurrentMember = async (memberId: string) => {
+  setCurrentMember = async (memberId: string) => {
     try {
       const { error } = await supabase.rpc('set_config', {
         setting_name: 'app.current_member_id',
@@ -51,3 +55,5 @@ if (!supabaseUrl || !supabaseAnonKey ||
     }
   };
 }
+
+export { supabase, setCurrentMember };
