@@ -12,7 +12,35 @@ export class DatabaseService {
   static async login(username: string, password: string): Promise<UserSession | null> {
     try {
       console.log('Attempting login for:', username);
-      console.log('Supabase client initialized:', !!supabase);
+      
+      // Check if Supabase is properly configured
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        console.error('Supabase not configured - using demo mode');
+        
+        // Return demo user for testing
+        if (username === 'demo' && password === 'demo') {
+          return {
+            memberId: 'demo-user-id',
+            name: 'Demo User',
+            username: 'demo',
+            lastScratchTime: null,
+            collectedStickers: ['1', '2'],
+            isAdmin: false,
+          };
+        } else if (username === 'admin' && password === 'admin123') {
+          return {
+            memberId: 'admin-user-id',
+            name: 'Admin User',
+            username: 'admin',
+            lastScratchTime: null,
+            collectedStickers: ['1', '2', '3'],
+            isAdmin: true,
+          };
+        }
+        return null;
+      }
       
       const { data: member, error } = await supabase
         .from('members')
@@ -63,6 +91,12 @@ export class DatabaseService {
   // Get member's collected stickers
   static async getCollectedStickers(memberId: string): Promise<string[]> {
     try {
+      // Demo mode fallback
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return memberId === 'demo-user-id' ? ['1', '2'] : ['1', '2', '3'];
+      }
+      
       await setCurrentMember(memberId);
       
       const { data: collections, error } = await supabase
@@ -85,6 +119,12 @@ export class DatabaseService {
   // Check if member can scratch today
   static async canScratchToday(memberId: string): Promise<boolean> {
     try {
+      // Demo mode - always allow scratching
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return true;
+      }
+      
       await setCurrentMember(memberId);
       
       const { data: lastScratch } = await supabase
@@ -114,6 +154,12 @@ export class DatabaseService {
   // Get time until next scratch
   static async getTimeUntilNextScratch(memberId: string): Promise<number> {
     try {
+      // Demo mode - no waiting time
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return 0;
+      }
+      
       await setCurrentMember(memberId);
       
       const { data: lastScratch } = await supabase
@@ -270,6 +316,15 @@ export class DatabaseService {
   // Get leaderboard data
   static async getLeaderboard(): Promise<any[]> {
     try {
+      // Demo mode fallback
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return [
+          { id: 'demo-user-id', name: 'Demo User', username: 'demo', stickers: 2, rank: 1 },
+          { id: 'admin-user-id', name: 'Admin User', username: 'admin', stickers: 3, rank: 2 }
+        ];
+      }
+      
       const { data: leaderboard, error } = await supabase
         .from('member_collections')
         .select(`
@@ -318,6 +373,16 @@ export class DatabaseService {
   // Get donors
   static async getDonors(): Promise<DonorRow[]> {
     try {
+      // Demo mode fallback
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return [
+          { donor_id: '1', name: 'Ramesh Patil', amount: 25000, date: '2024-08-01' },
+          { donor_id: '2', name: 'Suresh Industries', amount: 15000, date: '2024-08-01' },
+          { donor_id: '3', name: 'Priya Sharma', amount: 10000, date: '2024-08-01' }
+        ] as DonorRow[];
+      }
+      
       const { data: donors, error } = await supabase
         .from('donors')
         .select('*')
@@ -386,6 +451,17 @@ export class DatabaseService {
   // Get inventory stats
   static async getInventoryStats(): Promise<any> {
     try {
+      // Demo mode fallback
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        return {
+          totalCards: 500,
+          usedCards: 150,
+          remainingCards: 350,
+          paidCards: 25
+        };
+      }
+      
       const { data: stickers } = await supabase
         .from('stickers')
         .select('availability');

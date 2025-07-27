@@ -30,10 +30,17 @@ export default function LoginScreen() {
     
     try {
       console.log('Starting login process...');
-      console.log('Environment check:', {
-        supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-        hasKey: !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-      });
+      
+      // Check if Supabase is configured
+      if (!process.env.EXPO_PUBLIC_SUPABASE_URL || 
+          process.env.EXPO_PUBLIC_SUPABASE_URL === 'your_supabase_url_here') {
+        console.log('Running in demo mode - Supabase not configured');
+        Alert.alert(
+          'Demo Mode',
+          'Supabase database not configured. Running in demo mode.\n\nUse: demo/demo or admin/admin123',
+          [{ text: 'OK' }]
+        );
+      }
       
       const userSession = await DatabaseService.login(username, password);
       
